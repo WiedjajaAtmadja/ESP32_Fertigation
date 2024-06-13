@@ -29,7 +29,7 @@ const uint8_t arOutputsPin[NUM_OUTPUS] = {27, 26, 25};
 // ini adalah durasi output dalam milisecond
 uint16_t arOutputOnDuration[NUM_OUTPUS] = {1000, 1000, 1000};
 
-FertigationOutput fertigationOutput;
+Task fertigationOutput;
 Ticker ticker;
 Ticker ledBlinkOff;
 

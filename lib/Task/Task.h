@@ -5,9 +5,9 @@
 #define OFF 0
 #define MOTORPUMP_DELAY 500
 
-class FertigationOutput {
+class Task {
   public:
-    FertigationOutput();
+    Task();
     void setMotorPumpPin(uint8_t nPin, u_int16_t nOnDelay, u_int16_t nOffDelay) {
       m_nMotorPumpPin = nPin;
       m_nMotorPumpOnDelay = nOnDelay;
@@ -21,12 +21,12 @@ class FertigationOutput {
     void update();
 
 protected:
-     static void setMotorPumpOn(FertigationOutput* p){
+     static void setMotorPumpOn(Task* p){
         if (p->m_nMotorPumpPin != -1)
           digitalWrite(p->m_nMotorPumpPin, ON);
      }
      
-     static void setMotorPumpOff(FertigationOutput* p){
+     static void setMotorPumpOff(Task* p){
         if (p->m_nMotorPumpPin != -1)
           digitalWrite(p->m_nMotorPumpPin, OFF);
      }

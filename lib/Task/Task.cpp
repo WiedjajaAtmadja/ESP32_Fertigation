@@ -1,14 +1,14 @@
 #include <Arduino.h>
-#include "FertigationOutput.h"
+#include "Task.h"
 
-FertigationOutput::FertigationOutput() {
+Task::Task() {
   m_nLastMillis = 0;
   m_nOutputCount = 0;
   m_nCurrentIndex = 0;
   m_nMotorPumpPin=-1;
 }
 
-void FertigationOutput::addSolenoidOutput(uint8_t nPin, uint16_t nDuration) {
+void Task::addSolenoidOutput(uint8_t nPin, uint16_t nDuration) {
   if (m_nOutputCount < MAX_OUTPUTS) {
     m_arOutputPin[m_nOutputCount] = nPin;
     m_arOutputDuration[m_nOutputCount] = nDuration;
@@ -16,7 +16,7 @@ void FertigationOutput::addSolenoidOutput(uint8_t nPin, uint16_t nDuration) {
   }
 }
 
-void FertigationOutput::start() {
+void Task::start() {
   if (m_fStart)
     return;
   m_fStart = true;
@@ -26,11 +26,11 @@ void FertigationOutput::start() {
   delay(100);
   if (m_nMotorPumpPin != -1)
   {
-    m_ticker.once_ms(m_nMotorPumpOnDelay, &FertigationOutput::setMotorPumpOn, this);
+    m_ticker.once_ms(m_nMotorPumpOnDelay, &Task::setMotorPumpOn, this);
   }
 }
 
-void FertigationOutput::update() {
+void Task::update() {
     if (!m_fStart)
         return;
 
@@ -43,7 +43,7 @@ void FertigationOutput::update() {
             m_fStart = false;
             if (m_nMotorPumpPin != -1)
             {
-              m_ticker.once_ms(m_nMotorPumpOffDelay,&FertigationOutput::setMotorPumpOff, this);
+              m_ticker.once_ms(m_nMotorPumpOffDelay,&Task::setMotorPumpOff, this);
             }
         }
         else
@@ -51,7 +51,7 @@ void FertigationOutput::update() {
     }
 }
 
-void FertigationOutput::initOutputs() {
+void Task::initOutputs() {
   for (uint8_t i = 0; i < m_nOutputCount; i++) {
     pinMode(m_arOutputPin[i], OUTPUT);
     digitalWrite(m_arOutputPin[i], OFF);
