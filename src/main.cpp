@@ -51,10 +51,15 @@ void onScheduleExecute(uint16_t arDuration[]) {
   solenoid.setSolenoidDuration(arDuration);
   solenoid.start();
 }
-
+// bool fOn = true;
 void onTimer() {
   DateTime now = rtc.now();
   ePaper_displayClock(now);
+  // digitalWrite(arSolenoidPin[0], fOn);
+  // digitalWrite(arSolenoidPin[1], fOn);
+  // digitalWrite(arSolenoidPin[2], fOn);
+  // digitalWrite(MOTOR_PIN, fOn);
+  // fOn = !fOn;
   if (now.second() % 10 == 0) {
     m_now++;
     Serial.printf("onTimer: %d\n", m_now);
