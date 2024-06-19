@@ -15,7 +15,7 @@ private:
     int m_nCount=0;
     int m_nCurrentIdx = 0;
     int m_nLastIndex = -1;
-    void (*onExecuteSchedule)(uint16_t arDuration[]) = nullptr;
+    void (*onExecuteSchedule)(const uint16_t arDuration[]) = nullptr;
 
 public:
     Scheduler(void (*cbExecuteSchedule)(const uint16_t arDuration[]));

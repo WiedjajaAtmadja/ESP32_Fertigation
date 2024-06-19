@@ -41,14 +41,13 @@ void ePaper_Init();
 void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...);
 void ePaper_updateDisplay();
 void ePaper_displayClock(const DateTime& now);
-void ePaper_displaySchedule(int idx, int count, uint16_t hh, uint16_t mm);
+void ePaper_displaySchedule();
 Scheduler scheduler(onScheduleExecute);
 uint16_t m_now=0000;
 
-void onScheduleExecute(uint16_t arDuration[]) {
+void onScheduleExecute(const uint16_t arDuration[]) {
   Serial.printf("onScheduleExecute %d of %d\n", scheduler.currentIdx()+1, scheduler.count());
-  // ePaper_displaySchedule(scheduler.currentIdx()+1, scheduler.count(), 10, 15);
-  ePaper_updateDisplay();
+  ePaper_displaySchedule();
   solenoid.setSolenoidDuration(arDuration);
   solenoid.start();
 }
@@ -56,16 +55,18 @@ void onScheduleExecute(uint16_t arDuration[]) {
 void onTimer() {
   DateTime now = rtc.now();
   ePaper_displayClock(now);
+  uint16_t t = now.hour()*100 + now.minute();
+  scheduler.run(t);
   // digitalWrite(arSolenoidPin[0], fOn);
   // digitalWrite(arSolenoidPin[1], fOn);
   // digitalWrite(arSolenoidPin[2], fOn);
   // digitalWrite(MOTOR_PIN, fOn);
   // fOn = !fOn;
-  if (now.second() % 10 == 0) {
-    m_now++;
-    Serial.printf("onTimer: %d\n", m_now);
-    scheduler.run(m_now);
-  }
+  // if (now.second() % 10 == 0) {
+  //   m_now++;
+  //   Serial.printf("onTimer: %d\n", m_now);
+  //   scheduler.run(m_now);
+  // }
 }
 
 void setup() {
@@ -84,10 +85,10 @@ void setup() {
   else {
     Serial.println("Couldn't find RTC"); 
   }
-  scheduler.addTask(0001, arSolenoidActiveDuration);
-  scheduler.addTask(0005, arSolenoidActiveDuration);
+  scheduler.addTask(1101, arSolenoidActiveDuration);
+  scheduler.addTask(1103, arSolenoidActiveDuration);
   uint16_t arSolenoidDuration[NUM_OUTPUS] ={5, 5, 3};
-  scheduler.addTask(0010, arSolenoidDuration);
+  scheduler.addTask(1105, arSolenoidActiveDuration);
 
   ePaper_Init();
   Serial.println("System running...");
@@ -107,8 +108,20 @@ void ePaper_Init()
   epaperDisplay.setRotation(1);
   epaperDisplay.setFont(&FreeMonoBold9pt7b);
   epaperDisplay.setTextColor(GxEPD_BLACK);
-  ePaper_updateDisplay();
+  // ePaper_updateDisplay();
+  ePaper_displayText(1, ALLIGN_CENTER, "SMART IRRIGATION");
+  ePaper_displayText(2, ALLIGN_LEFT, "Weather: Sunny");
+  ePaper_displayText(3, ALLIGN_LEFT, "Pump :ON");
+  ePaper_displayText(4, ALLIGN_LEFT, "Valve:OFF OFF OFF");
+  ePaper_displaySchedule();
   ePaper_displayClock(rtc.now());
+  // ePaper_displayText(1, ALLIGN_CENTER, "SMART IRRIGATION");
+  // ePaper_displayText(2, ALLIGN_CENTER, "Mode: Auto");
+  // ePaper_displayText(3, ALLIGN_LEFT,   "Weather: Sunny");
+  // ePaper_displayText(4, ALLIGN_LEFT,   "Weather: Sunny 2");
+  // ePaper_displayText(5, ALLIGN_LEFT,   "Weather: Sunny 3");
+  // ePaper_displayText(6, ALLIGN_LEFT,   "Weather: Sunny 4");
+  // ePaper_displayText(7, ALLIGN_LEFT,   "Weather: Sunny 5");
 }
 
 void ePaper_updateDisplay()
@@ -119,15 +132,16 @@ void ePaper_updateDisplay()
   {
     epaperDisplay.setCursor(0, 1*15);
     epaperDisplay.print("   SMART IRRIGATION");
-    epaperDisplay.setCursor(0, 3*15);
-    epaperDisplay.println("Weather: Sunny");
-    epaperDisplay.println("Pump :ON");
-    epaperDisplay.println("Valve:OFF OFF OFF");
-    epaperDisplay.printf ("Sched:%02d of %02d ->%02d:%02d", 
-      scheduler.currentIdx()+1, scheduler.count(), 10, 15);
+    // epaperDisplay.setCursor(0, 3*15);
+    // epaperDisplay.println("Weather: Sunny");
+    // epaperDisplay.println("Pump :ON");
+    // epaperDisplay.println("Valve:OFF OFF OFF");
+    // epaperDisplay.printf ("Sched:%02d of %02d ->%02d:%02d", 
+    //   scheduler.currentIdx()+1, scheduler.count(), 10, 15);
   }
   while (epaperDisplay.nextPage());
 }
+
 void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
 {
   char buffer[128];
@@ -137,9 +151,9 @@ void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
   va_end(args);
   int16_t tbx, tby; uint16_t tbw, tbh;
   epaperDisplay.getTextBounds(buffer, 0, 0, &tbx, &tby, &tbw, &tbh);
-  uint16_t wh = 15; //FreeMonoBold9pt7b.yAdvance;
+  uint16_t wh = FreeMonoBold9pt7b.yAdvance;
   uint16_t y = row * wh; // y is base line!
-  uint16_t wy = y - wh/2;
+  uint16_t wy = y - wh/2 - 1;
   uint16_t x;
   switch (allign)
   {
@@ -162,14 +176,16 @@ void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
     epaperDisplay.print(buffer);
   }
   while (epaperDisplay.nextPage());
+  delay(100);
 }
 
 void ePaper_displayClock(const DateTime& now) {
-  ePaper_displayText(8, ALLIGN_CENTER, "%02d/%02d/%04d %02d:%02d:%02d", 
+  ePaper_displayText(6, ALLIGN_CENTER, "%02d/%02d/%04d %02d:%02d:%02d", 
     now.day(), now.month(), now.year(), 
     now.hour(), now.minute(), now.second());
 }
 
-void ePaper_displaySchedule(int idx, int count, uint16_t hh, uint16_t mm) {
-  ePaper_displayText(7, ALLIGN_LEFT, "Sched:%02d of %02d ->%02d:%02d", idx, count, hh, mm);
+void ePaper_displaySchedule() {
+  ePaper_displayText(5, ALLIGN_LEFT, "Sched:%02d of %02d ->%02d:%02d", 
+    scheduler.currentIdx()+1, scheduler.count(), 10, 15);
 }
