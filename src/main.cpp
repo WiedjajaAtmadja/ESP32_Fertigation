@@ -18,7 +18,8 @@ Example:
 #include "Solenoid.h"
 #include "Scheduler.h"
 
-GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> epaperDisplay(GxEPD2_213_B74(/*CS=5*/ 5, /*DC=*/ 17, /*RST=*/ 16, /*BUSY=*/ 4)); // GDEM0213B74 122x250, SSD1680
+GxEPD2_BW<GxEPD2_213_BN, GxEPD2_213_BN::HEIGHT> epaperDisplay(GxEPD2_213_BN(/*CS=5*/ 5, /*DC=*/ 17, /*RST=*/ 16, /*BUSY=*/ 4)); // DEPG0213BN 122x250, SSD1680, TTGO T5 V2.4.1, V2.3.1
+// GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> epaperDisplay(GxEPD2_213_B74(/*CS=5*/ 5, /*DC=*/ 17, /*RST=*/ 16, /*BUSY=*/ 4)); // GDEM0213B74 122x250, SSD1680
 enum TextAllign {ALLIGN_CENTER, ALLIGN_LEFT, ALLIGN_RIGHT};
 
 RTC_DS3231 rtc;
@@ -35,7 +36,7 @@ uint16_t arSolenoidActiveDuration[NUM_OUTPUS] = {2, 2, 2};
 Solenoid solenoid;
 Ticker ticker;
 Ticker ledBlinkOff;
-void onScheduleExecute(uint16_t arDuration[]);
+void onScheduleExecute(const uint16_t arDuration[]);
 void ePaper_Init();
 void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...);
 void ePaper_updateDisplay();
@@ -68,7 +69,7 @@ void onTimer() {
 }
 
 void setup() {
-  String message;
+  // String message;
   Serial.begin(115200);
 
   // this will turn on motor pump after 1000ms and turn off after 2000ms
@@ -77,13 +78,16 @@ void setup() {
   if (rtc.begin())
   {
     Serial.println("RTC is running");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+     rtc.adjust(DateTime(F(__DATE__), F("11:00:00")));
   }
   else {
     Serial.println("Couldn't find RTC"); 
   }
   scheduler.addTask(0001, arSolenoidActiveDuration);
   scheduler.addTask(0005, arSolenoidActiveDuration);
+  uint16_t arSolenoidDuration[NUM_OUTPUS] ={5, 5, 3};
+  scheduler.addTask(0010, arSolenoidDuration);
 
   ePaper_Init();
   Serial.println("System running...");

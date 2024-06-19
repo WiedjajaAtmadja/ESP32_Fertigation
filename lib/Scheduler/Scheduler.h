@@ -18,8 +18,8 @@ private:
     void (*onExecuteSchedule)(uint16_t arDuration[]) = nullptr;
 
 public:
-    Scheduler(void (*cbExecuteSchedule)(uint16_t arDuration[]));
-    void addTask(uint16_t nTime, uint16_t arDuration[]);
+    Scheduler(void (*cbExecuteSchedule)(const uint16_t arDuration[]));
+    void addTask(uint16_t nTime, const uint16_t arDuration[]);
     int  start(uint16_t now);
     void run(uint16_t now);
     int currentIdx() { return m_nCurrentIdx; }
