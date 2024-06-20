@@ -24,6 +24,11 @@ public:
     void run(uint16_t now);
     int currentIdx() { return m_nCurrentIdx; }
     int count() { return m_nCount; }
+    uint16_t nextScheduleTime() {
+        if (m_nCurrentIdx+1 < m_nCount)
+            return m_arTask[m_nCurrentIdx+1].nTime;
+        return m_arTask[0].nTime; 
+    }
 private:    
     void sort();    
 };

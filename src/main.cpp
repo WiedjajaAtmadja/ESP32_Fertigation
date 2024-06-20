@@ -39,11 +39,9 @@ Ticker ledBlinkOff;
 void onScheduleExecute(const uint16_t arDuration[]);
 void ePaper_Init();
 void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...);
-void ePaper_updateDisplay();
 void ePaper_displayClock(const DateTime& now);
 void ePaper_displaySchedule();
 Scheduler scheduler(onScheduleExecute);
-uint16_t m_now=0000;
 
 void onScheduleExecute(const uint16_t arDuration[]) {
   Serial.printf("onScheduleExecute %d of %d\n", scheduler.currentIdx()+1, scheduler.count());
@@ -51,26 +49,21 @@ void onScheduleExecute(const uint16_t arDuration[]) {
   solenoid.setSolenoidDuration(arDuration);
   solenoid.start();
 }
-// bool fOn = true;
+
+uint16_t currentTime()
+{
+  DateTime now = rtc.now();
+  return now.hour()*100 + now.minute();
+}
+
 void onTimer() {
   DateTime now = rtc.now();
-  ePaper_displayClock(now);
   uint16_t t = now.hour()*100 + now.minute();
+  ePaper_displayClock(now);
   scheduler.run(t);
-  // digitalWrite(arSolenoidPin[0], fOn);
-  // digitalWrite(arSolenoidPin[1], fOn);
-  // digitalWrite(arSolenoidPin[2], fOn);
-  // digitalWrite(MOTOR_PIN, fOn);
-  // fOn = !fOn;
-  // if (now.second() % 10 == 0) {
-  //   m_now++;
-  //   Serial.printf("onTimer: %d\n", m_now);
-  //   scheduler.run(m_now);
-  // }
 }
 
 void setup() {
-  // String message;
   Serial.begin(115200);
 
   // this will turn on motor pump after 1000ms and turn off after 2000ms
@@ -93,7 +86,7 @@ void setup() {
   ePaper_Init();
   Serial.println("System running...");
   ticker.attach(1, onTimer); 
-  scheduler.start(m_now);
+  scheduler.start(currentTime());
 }
 
 void loop() {
@@ -108,38 +101,12 @@ void ePaper_Init()
   epaperDisplay.setRotation(1);
   epaperDisplay.setFont(&FreeMonoBold9pt7b);
   epaperDisplay.setTextColor(GxEPD_BLACK);
-  // ePaper_updateDisplay();
   ePaper_displayText(1, ALLIGN_CENTER, "SMART IRRIGATION");
   ePaper_displayText(2, ALLIGN_LEFT, "Weather: Sunny");
   ePaper_displayText(3, ALLIGN_LEFT, "Pump :ON");
   ePaper_displayText(4, ALLIGN_LEFT, "Valve:OFF OFF OFF");
   ePaper_displaySchedule();
   ePaper_displayClock(rtc.now());
-  // ePaper_displayText(1, ALLIGN_CENTER, "SMART IRRIGATION");
-  // ePaper_displayText(2, ALLIGN_CENTER, "Mode: Auto");
-  // ePaper_displayText(3, ALLIGN_LEFT,   "Weather: Sunny");
-  // ePaper_displayText(4, ALLIGN_LEFT,   "Weather: Sunny 2");
-  // ePaper_displayText(5, ALLIGN_LEFT,   "Weather: Sunny 3");
-  // ePaper_displayText(6, ALLIGN_LEFT,   "Weather: Sunny 4");
-  // ePaper_displayText(7, ALLIGN_LEFT,   "Weather: Sunny 5");
-}
-
-void ePaper_updateDisplay()
-{
-  epaperDisplay.setFullWindow();
-  epaperDisplay.firstPage();
-  do
-  {
-    epaperDisplay.setCursor(0, 1*15);
-    epaperDisplay.print("   SMART IRRIGATION");
-    // epaperDisplay.setCursor(0, 3*15);
-    // epaperDisplay.println("Weather: Sunny");
-    // epaperDisplay.println("Pump :ON");
-    // epaperDisplay.println("Valve:OFF OFF OFF");
-    // epaperDisplay.printf ("Sched:%02d of %02d ->%02d:%02d", 
-    //   scheduler.currentIdx()+1, scheduler.count(), 10, 15);
-  }
-  while (epaperDisplay.nextPage());
 }
 
 void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
@@ -176,7 +143,7 @@ void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
     epaperDisplay.print(buffer);
   }
   while (epaperDisplay.nextPage());
-  delay(100);
+  // delay(100);
 }
 
 void ePaper_displayClock(const DateTime& now) {
@@ -186,6 +153,7 @@ void ePaper_displayClock(const DateTime& now) {
 }
 
 void ePaper_displaySchedule() {
+  uint16_t nextTime = scheduler.nextScheduleTime();
   ePaper_displayText(5, ALLIGN_LEFT, "Sched:%02d of %02d ->%02d:%02d", 
-    scheduler.currentIdx()+1, scheduler.count(), 10, 15);
+    scheduler.currentIdx()+1, scheduler.count(), nextTime/100, nextTime%100);
 }
