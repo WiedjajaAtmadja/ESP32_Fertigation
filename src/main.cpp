@@ -12,18 +12,24 @@ Example:
 #include <Arduino.h>
 #include <stdarg.h>
 #include <Ticker.h>
+#include <WiFi.h>
 #include <RTClib.h>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include "Solenoid.h"
 #include "Scheduler.h"
+#include "NTPClient.h"
+
+#define WIFI_SSID ""
+#define WIFI_PASS ""
 
 GxEPD2_BW<GxEPD2_213_BN, GxEPD2_213_BN::HEIGHT> epaperDisplay(GxEPD2_213_BN(/*CS=5*/ 5, /*DC=*/ 17, /*RST=*/ 16, /*BUSY=*/ 4)); // DEPG0213BN 122x250, SSD1680, TTGO T5 V2.4.1, V2.3.1
 // GxEPD2_BW<GxEPD2_213_B74, GxEPD2_213_B74::HEIGHT> epaperDisplay(GxEPD2_213_B74(/*CS=5*/ 5, /*DC=*/ 17, /*RST=*/ 16, /*BUSY=*/ 4)); // GDEM0213B74 122x250, SSD1680
 enum TextAllign {ALLIGN_CENTER, ALLIGN_LEFT, ALLIGN_RIGHT};
 
 RTC_DS3231 rtc;
-
+WiFiUDP udp;
+NTPClient ntp(udp, "id.pool.ntp.org", 7*3600, 60000);
 #define NUM_OUTPUS 3
 #define MOTOR_PIN 25
 #define SOLENOID_ON_DELAY 1000 // ini adalah delay output dalam miliseconds
@@ -36,12 +42,36 @@ uint16_t arSolenoidActiveDuration[NUM_OUTPUS] = {2, 2, 2};
 Solenoid solenoid;
 Ticker ticker;
 Ticker ledBlinkOff;
+bool g_isWifiConnected = false;
+
 void onScheduleExecute(const uint16_t arDuration[]);
 void ePaper_Init();
-void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...);
+void ePaper_displayText(float row, TextAllign allign, const char* szFmt, ...);
 void ePaper_displayClock(const DateTime& now);
 void ePaper_displaySchedule();
 Scheduler scheduler(onScheduleExecute);
+
+bool wifiConnect(int nMaxRetry=5) {
+  g_isWifiConnected = false;
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.print("Connecting to WiFi.");
+  for (int i=0; i<nMaxRetry; i++) {
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      g_isWifiConnected = true;
+      Serial.print("System online with IP address: ");
+      Serial.println(WiFi.localIP());  
+      Serial.printf("Signal rssi: %d\n", WiFi.RSSI()); 
+      break;  
+    }
+    delay(500);
+    Serial.print(".");
+  }
+  if (!g_isWifiConnected)
+    Serial.println("Failed to connect to WiFi, System Offline.");
+  return g_isWifiConnected;
+}
 
 void onScheduleExecute(const uint16_t arDuration[]) {
   Serial.printf("onScheduleExecute %d of %d\n", scheduler.currentIdx()+1, scheduler.count());
@@ -84,6 +114,10 @@ void setup() {
   scheduler.addTask(1105, arSolenoidActiveDuration);
 
   ePaper_Init();
+  if (wifiConnect())
+  {
+    ntp.begin();
+  }
   Serial.println("System running...");
   ticker.attach(1, onTimer); 
   scheduler.start(currentTime());
@@ -109,7 +143,7 @@ void ePaper_Init()
   ePaper_displayClock(rtc.now());
 }
 
-void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
+void ePaper_displayText(float row, TextAllign allign, const char* szFmt, ...)
 {
   char buffer[128];
   va_list args;
@@ -119,7 +153,7 @@ void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
   int16_t tbx, tby; uint16_t tbw, tbh;
   epaperDisplay.getTextBounds(buffer, 0, 0, &tbx, &tby, &tbw, &tbh);
   uint16_t wh = FreeMonoBold9pt7b.yAdvance;
-  uint16_t y = row * wh; // y is base line!
+  uint16_t y = (row * wh); // y is base line!
   uint16_t wy = y - wh/2 - 1;
   uint16_t x;
   switch (allign)
@@ -143,17 +177,16 @@ void ePaper_displayText(int row, TextAllign allign, const char* szFmt, ...)
     epaperDisplay.print(buffer);
   }
   while (epaperDisplay.nextPage());
-  // delay(100);
 }
 
 void ePaper_displayClock(const DateTime& now) {
-  ePaper_displayText(6, ALLIGN_CENTER, "%02d/%02d/%04d %02d:%02d:%02d", 
+  ePaper_displayText(6.5, ALLIGN_CENTER, "%02d/%02d/%04d %02d:%02d:%02d", 
     now.day(), now.month(), now.year(), 
     now.hour(), now.minute(), now.second());
 }
 
 void ePaper_displaySchedule() {
   uint16_t nextTime = scheduler.nextScheduleTime();
-  ePaper_displayText(5, ALLIGN_LEFT, "Sched:%02d of %02d ->%02d:%02d", 
+  ePaper_displayText(5.2, ALLIGN_LEFT, "Sched:%02d of %02d ->%02d:%02d", 
     scheduler.currentIdx()+1, scheduler.count(), nextTime/100, nextTime%100);
 }
